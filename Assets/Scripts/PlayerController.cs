@@ -20,17 +20,22 @@ public class PlayerController : MonoBehaviour
     public int maxNbJump = 2;
     private int nbJump = 0;
 
+    private bool gotHit = false;
+    public float time = 3f;
+    private float timeStore;
+
 
     private Rigidbody playerRB;
     // Start is called before the first frame update
     void Start()
     {
         playerRB = GetComponent<Rigidbody>();
+        timeStore = time;
     }
 
     void FixedUpdate()
     {
-        if (run && GetComponent<PhysicsHelper>().IsGrounded && !hitWall)
+        if (!gotHit && run && GetComponent<PhysicsHelper>().IsGrounded && !hitWall)
             playerRB.velocity = new Vector2(moveSpeed, playerRB.velocity.y);
         else
             playerRB.velocity = new Vector2(playerRB.velocity.x, playerRB.velocity.y);
@@ -56,6 +61,7 @@ public class PlayerController : MonoBehaviour
             LifeManager.Die();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
+
     }
 
     // Update is called once per frame
@@ -71,6 +77,18 @@ public class PlayerController : MonoBehaviour
                     Jump();
             }
         }
+
+        if(gotHit)
+        {
+            if (time > 0)
+                time -= Time.deltaTime;
+            else
+            {
+                gotHit = false;
+                time = timeStore;
+            }
+        }
+        GetComponent<Animator>().SetBool("Hurt", gotHit);
     }
 
     void OnCollisionEnter(Collision hit)
@@ -80,6 +98,18 @@ public class PlayerController : MonoBehaviour
         {
             collisionSide = transform.InverseTransformPoint(hit.transform.position).x > 0f ? "left" : "right";
             hitWall = true;
+        }
+        if(hit.gameObject.tag == "baddy")
+        {
+            if(LifeManager.coins == 0)
+            {
+                LifeManager.Die();
+                GetComponent<MenuHandler>().RestartGame();
+                return;
+            }
+            gotHit = true;
+            GetComponent<Rigidbody>().AddForce(new Vector2(-10f, 10f), ForceMode.Impulse);
+
         }
     }
 
